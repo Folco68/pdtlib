@@ -1,3 +1,5 @@
+; kate: indent-width 8; replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
+
 ;==================================================================================================
 ;
 ;	pdtlib::InitCmdline
@@ -19,7 +21,7 @@ InitCmdline:	DEFINE	pdtlib@0001
 	move.w	d0,ARGC(a0)		; Save argc
 	move.l	a1,ARGV(a0)		; Save argv
 
-	
+
 ;==================================================================================================
 ;
 ;	pdtlib::ResetCmdline
@@ -35,11 +37,11 @@ InitCmdline:	DEFINE	pdtlib@0001
 ;==================================================================================================
 
 ResetCmdline:	DEFINE	pdtlib@0002
-	
+
 	clr.w	CURRENT(a0)		; Reset parser
 	rts
 
-	
+
 ;==================================================================================================
 ;
 ;	pdtlib::GetNextArg
@@ -55,9 +57,9 @@ ResetCmdline:	DEFINE	pdtlib@0002
 ;==================================================================================================
 
 GetNextArg:	DEFINE	pdtlib@0003
-	
+
 	addq.w	#1,CURRENT(a0)		; Next argument
-	
+
 
 ;==================================================================================================
 ;
@@ -75,7 +77,7 @@ GetNextArg:	DEFINE	pdtlib@0003
 
 GetCurrentArg:	DEFINE	pdtlib@0004
 
-	move.w	CURRENT(a0),d0		; Read # current arg 
+	move.w	CURRENT(a0),d0		; Read # current arg
 	cmp.w	ARGC(a0),d0		; Does it exist ?
 	bcs.s	\GetArg			; Yes
 		suba.l	a0,a0		; No more arg, return null
@@ -86,7 +88,7 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 	movea.l	ARGV(a0),a0		; argv**
 	movea.l	0(a0,d0.w),a0		; arg
 	rts
-	
+
 
 ;==================================================================================================
 ;
@@ -119,7 +121,7 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 ;	destroy	std
 ;
 ;==================================================================================================
-	
+
 ;==================================================================================================
 ;	Define some constants to access the args in the stack
 ;==================================================================================================
@@ -133,7 +135,7 @@ CALLBACK_SWITCH		equ	2*4+20
 ;	Entry point
 ;==================================================================================================
 ParseCmdline:	DEFINE	pdtlib@0005
- 
+
 	movem.l	d3/a2,-(sp)
 
 	;------------------------------------------------------------------------------------------
@@ -147,7 +149,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 		moveq.l	#PDTLIB_END_OF_PARSING,d0		; Else, we're done with parsing
 \EndOfParsing:	movem.l	(sp)+,d3/a2
 		rts
-	
+
 	;------------------------------------------------------------------------------------------
 	;	Initialize some vars
 	;------------------------------------------------------------------------------------------
@@ -156,7 +158,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	movea.l	SWITCH_TABLE(sp),a2				; Beginning of the table
 	move.b	1(a0),d2					; This char may be the second sign in case of a long switch
 								; else this is the character of the short switch
-	
+
 	;------------------------------------------------------------------------------------------
 	;	Check if we have zero, one or two '+' signs
 	;------------------------------------------------------------------------------------------
@@ -165,7 +167,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	bne.s	\NoPlus						; No, will try with '-'
 		cmp.b	d2,d3					; Is this a double sign ?
 		beq.s	\LongSwitch				; Yes, so this is a long switch
-	
+
 	;------------------------------------------------------------------------------------------
 	;	We have only one sign, check that the switch is 1 char long and null-terminated
 	;------------------------------------------------------------------------------------------
@@ -174,7 +176,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	tst.b	1(a0)						; We need one non-null char
 	beq.s	\EndOfParsing
 	tst.b	2(a0)						; We need only one char
-	bne.s	\EndOfParsing					
+	bne.s	\EndOfParsing
 
 	;------------------------------------------------------------------------------------------
 	;	We have found a short switch, let's try to find it in the table
@@ -184,7 +186,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	beq.s	\SwitchFound					; Yes, call its callback
 		bsr.s	\SkipSwitch				; Else we skip this switch
 		bra.s	\ShortSwitchLoop			; And we continue with the next one
-		
+
 	;------------------------------------------------------------------------------------------
 	;	Check if we have zero, one or two '-' signs
 	;------------------------------------------------------------------------------------------
@@ -199,7 +201,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;	We have found a long switch, let's try to find it in the table
 	;------------------------------------------------------------------------------------------
 \LongSwitch:
-	lea	2(a0),a1					; Skip the double sign	
+	lea	2(a0),a1					; Skip the double sign
 \LongSwitchLoop:
 	movea.l	a1,a0						; First char of the switch to find
 	addq.l	#1,a2						; Skip short switch
@@ -236,7 +238,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 \EOP:	bra.s	\EndOfParsing
 
 	;------------------------------------------------------------------------------------------
-	;	We found the switch we're looking for, so call its callback	
+	;	We found the switch we're looking for, so call its callback
 	;------------------------------------------------------------------------------------------
 \SwitchFound:
 	move.w	d3,d0						; Sign

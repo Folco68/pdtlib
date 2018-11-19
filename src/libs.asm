@@ -1,3 +1,5 @@
+; kate: indent-width 8; replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
+
 ;==================================================================================================
 ;
 ;	pdtlib::InstallTrampolines
@@ -18,7 +20,7 @@
 ;==================================================================================================
 
 	DEFINE	pdtlib@0000
-	
+
 	RAMC	kernel_LibsBegin		; Try to open the library
 	move.l	a0,-(sp)			; Test and save the descriptor
 	beq.s	\End				; Return if it failed

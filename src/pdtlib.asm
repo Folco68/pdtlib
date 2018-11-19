@@ -1,15 +1,17 @@
+; kate: indent-width 8; replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
+
 	include "tios.h"
 	include "romcalls.h"
 	include "krnlramc.h"
 	include "cmdline.h"
 	include	"internal.h"
 	include "pdtlib.h"
-	
+
 	xdef	_ti89
 	xdef	_ti89ti
 	xdef	_ti92plus
 	xdef	_v200
-	
+
 	xdef	_library
 	DEFINE	_flag_3		; Read-only
 	DEFINE	_version02	; Version 2 of Pdtlib
