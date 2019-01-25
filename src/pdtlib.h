@@ -15,6 +15,7 @@ PDTLIB_\3	equ	$\1
 
 	; Libraries
 	pdtlib_export	0000,InstallTrampolines,INSTALL_TRAMPOLINES
+    pdtlib_export	0008,InstallTrampolines_C,INSTALL_TRAMPOLINES_C
 
 	; Command line
 	pdtlib_export	0001,InitCmdline,INIT_CMDLINE

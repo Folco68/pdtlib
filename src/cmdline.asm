@@ -107,7 +107,7 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 ;
 ;	in	4(sp)	CMDLINE* cli
 ;		8(sp)	(void*)data
-;		12(sp)	char* table
+;		12(sp)	char* switch table
 ;		16(sp)	callback is not a switch
 ;		20(sp)	callback of the first switch
 ;		24(sp)	callback of the second switch, etc...

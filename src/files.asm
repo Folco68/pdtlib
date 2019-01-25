@@ -80,7 +80,7 @@ CreateSymStr:
 
 ;
 ;	in	a0	C-style filename
-;		a1	custom tag string if d0 is OTH_TAG
+;		a1	custom tag string if d2 is OTH_TAG
 ;		d2.b	tag
 ;
 ;
