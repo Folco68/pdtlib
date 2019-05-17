@@ -241,11 +241,11 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;	We found the switch we're looking for, so call its callback
 	;------------------------------------------------------------------------------------------
 \SwitchFound:
-	move.w	d3,d0						; Sign
-	movea.l	DATA(sp),a0					; (void*)data
 	move.l	CALLBACK_SWITCH(sp,d1.w),d1			; (*callback)
-	beq.s	\EndOfParsing					; Don't run the callback if it's null
-		movea.l	d1,a1
+	beq.s	\NextArg					; Don't run the callback if it's null
+		move.w	d3,d0					; Sign
+		movea.l	DATA(sp),a0				; (void*)data
+		movea.l	d1,a1					; (*callback)
 		jsr	(a1)
 		bra.s	\CheckCallbackReturnValue		; We need to test the return value of the callback
 
