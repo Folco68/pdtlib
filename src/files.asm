@@ -4,7 +4,7 @@
 ;
 ;	pdtlib::GetFilePtr
 ;
-;	Return a pointer to file data. Return 0 if the filename was invalid or couldn't br found
+;	Return a pointer to file data. Return 0 if the filename was invalid or couldn't be found
 ;
 ;	in	a0	C-style filename
 ;

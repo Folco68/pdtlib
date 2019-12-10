@@ -221,7 +221,9 @@ ParseCmdline:	DEFINE	pdtlib@0005
 \NoSign:
 	movea.l	DATA(sp),a0					; (void*)data
 	movea.l	CALLBACK_NO_SWITCH(sp),a1			; Callback ptr
-	jsr	(a1)
+	move.l	a1,d0						; Check if there is a callback for non-switch args
+	beq.s	\NextArg					; No
+	jsr	(a1)						; Else call it
 
 	;------------------------------------------------------------------------------------------
 	;	We must check that the callback return value is valid
