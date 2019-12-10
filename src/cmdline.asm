@@ -122,18 +122,19 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 ;
 ;==================================================================================================
 
-;==================================================================================================
-;	Define some constants to access the args in the stack
-;==================================================================================================
+	;------------------------------------------------------------------------------------------
+	;	Define some constants to access the args in the stack
+	;------------------------------------------------------------------------------------------
 CLI			equ	2*4+4
 DATA			equ	2*4+8
 SWITCH_TABLE		equ	2*4+12
 CALLBACK_NO_SWITCH	equ	2*4+16
 CALLBACK_SWITCH		equ	2*4+20
 
-;==================================================================================================
-;	Entry point
-;==================================================================================================
+	;------------------------------------------------------------------------------------------
+	;	Entry point
+	;------------------------------------------------------------------------------------------
+
 ParseCmdline:	DEFINE	pdtlib@0005
 
 	movem.l	d3/a2,-(sp)
@@ -271,3 +272,45 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	moveq.l	#PDTLIB_SWITCH_NOT_FOUND,d0			; Error code
 	addq.l	#4,sp						; Drop the return address of \SkipSwitch
 	bra.s	\EOP						; Goto EndOfParsing
+
+
+;==================================================================================================
+;
+;	pdtlib::RemoveCurrentArg
+;
+;	Remove the current arg from the argv table. Usefull when parsing the CLI multiple times
+;
+;	in	a0	CMDLINE*
+;
+;	out	d0	0 if no current arg
+;
+;	destroy	d0/a0
+;
+;==================================================================================================
+
+RemoveCurrentArg:	DEFINE pdtlib@0009
+
+	movem.l	a0-a1,-(sp)					; Save regs
+	movea.l	a0,a1						; Save CMDLINE*
+
+	;------------------------------------------------------------------------------------------
+	;	Check if there is args to move
+	;------------------------------------------------------------------------------------------
+
+	bsr	GetCurrentArg
+	move.l	a0,d0						; Check if there is a current argument
+	beq.s	\Fail						; No -> error
+	
+	;------------------------------------------------------------------------------------------
+	;	Get the number of args to move and move them
+	;------------------------------------------------------------------------------------------
+
+	move.w	ARGC(a1),d0					; Read argc
+	sub.w	CURRENT(a1),d0					; Number of remaining args
+\Loop:	move.l	4(a0),(a0)+					; Move the next arg to the previous position
+	subq.w	#1,ARGC(a1)					; Adjust argc
+	dbf.w	d0,\Loop
+	subq.w	#1,CURRENT(a1)					; The previous arg becomes the current one
+	
+\Fail:	movem.l	(sp)+,a0-a1					; Restore regs
+	rts
