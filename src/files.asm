@@ -16,12 +16,36 @@
 
 GetFilePtr:	DEFINE	pdtlib@0006
 
-	movem.l	a1/d0-d2,-(sp)
+	bsr	GetFileHandle						; Get handle in d0
+	movea.w	d0,a0							; a0 = NULL if handle was not found
+	tst.w	d0							; Check
+	beq.s	\End							; Don't deref if not found
+	trap	#3							; Deref
+\End:	rts
+
+
+;==================================================================================================
+;
+;	pdtlib::GetFileHandel
+;
+;	Return the handle of a file. Return H_NULL if the filename was invalid or couldn't be found
+;
+;	in	a0	C-style filename
+;
+;	out	d0.w	handle
+;
+;	destroy	d0.l
+;
+;==================================================================================================
+
+GetFileHandle:	DEFINE	pdtlib@000A
+
+	movem.l	a0-a1/d1-d2,-(sp)
 	bsr	CreateSymStr						; Create the SYM_STR
 	move.l	a0,d0							; Check it
 	bne.s	\SymStrCreated						; Process it if the name is valid
 \End:		lea	20(sp),sp
-		movem.l	(sp)+,a1/d0-d2
+		movem.l	(sp)+,a0-a1/d1-d2
 		rts
 
 \SymStrCreated:
@@ -31,9 +55,9 @@ GetFilePtr:	DEFINE	pdtlib@0006
 	addq.l	#6,sp							; Pop args
 	move.l	a0,d0							; Check the SYM_ENTRY*
 	beq.s	\End							; The file was not found
-	movea.w	12(a0),a0						; Read the handle
-	trap	#3							; Dereference it
+	move.w	12(a0),d0						; Read the handle
 	bra.s	\End
+
 
 
 ;==================================================================================================

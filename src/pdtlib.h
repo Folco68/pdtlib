@@ -15,7 +15,7 @@ PDTLIB_\3	equ	$\1
 
 	; Libraries
 	pdtlib_export	0000,InstallTrampolines,INSTALL_TRAMPOLINES
-    pdtlib_export	0008,InstallTrampolines_C,INSTALL_TRAMPOLINES_C
+	pdtlib_export	0008,InstallTrampolines_C,INSTALL_TRAMPOLINES_C
 
 	; Command line
 	pdtlib_export	0001,InitCmdline,INIT_CMDLINE
@@ -23,10 +23,12 @@ PDTLIB_\3	equ	$\1
 	pdtlib_export	0003,GetNextArg,GET_NEXT_ARG
 	pdtlib_export	0004,GetCurrentArg,GET_CURRENT_ARG
 	pdtlib_export	0005,ParseCmdline,PARSE_CMDLINE
+	pdtlib_export	0009,RemoveCurrentArg,REMOVE_CURRENT_ARG
 
 	; Files
 	pdtlib_export	0006,GetFilePtr,GET_FILE_PTR
 	pdtlib_export	0007,CheckFileType,CHECK_FILE_TYPE
+	pdtlib_export	000A,GetFileHandle,GET_FILE_HANDLE
 
 
 ;==================================================================================================
