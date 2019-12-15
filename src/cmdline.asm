@@ -284,17 +284,17 @@ ParseCmdline:	DEFINE	pdtlib@0005
 ;
 ;	out	d0	0 if no current arg
 ;
-;	destroy	d0/a0
+;	destroy	nothing
 ;
 ;==================================================================================================
 
 RemoveCurrentArg:	DEFINE pdtlib@0009
 
-	movem.l	a0-a1,-(sp)					; Save regs
+	movem.l	a0-a1/d1,-(sp)					; Save regs
 	movea.l	a0,a1						; Save CMDLINE*
 
 	;------------------------------------------------------------------------------------------
-	;	Check if there is args to move
+	;	Safety check: is there an arg to move ?
 	;------------------------------------------------------------------------------------------
 
 	bsr	GetCurrentArg
@@ -307,10 +307,22 @@ RemoveCurrentArg:	DEFINE pdtlib@0009
 
 	move.w	ARGC(a1),d0					; Read argc
 	sub.w	CURRENT(a1),d0					; Number of remaining args
+	subq.w	#2,d0						; Remove program name + counter adjustment
+	bpl.s	\MovePtr					; At least one arg to move
+		subq.w	#1,ARGC(a1)				; Else we are removing the last arg, decrease ARGC with 1, no address to move
+		bra.s	\End
+	
+\MovePtr:
+	move.w	CURRENT(a1),d1
+	add.w	d1,d1
+	add.w	d1,d1
+	movea.l	ARGV(a1),a0
+	lea	0(a0,d1.w),a0
+	
 \Loop:	move.l	4(a0),(a0)+					; Move the next arg to the previous position
 	subq.w	#1,ARGC(a1)					; Adjust argc
 	dbf.w	d0,\Loop
-	subq.w	#1,CURRENT(a1)					; The previous arg becomes the current one
-	
-\Fail:	movem.l	(sp)+,a0-a1					; Restore regs
+
+\End:	subq.w	#1,CURRENT(a1)					; The previous arg becomes the current one
+\Fail:	movem.l	(sp)+,a0-a1/d1					; Restore regs
 	rts

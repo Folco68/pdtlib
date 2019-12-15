@@ -10,23 +10,24 @@
 ;
 ;	out	a0	point to the first data byte of the file
 ;
-;	destroy	a0
+;	destroy	a0/d0
 ;
 ;==================================================================================================
 
 GetFilePtr:	DEFINE	pdtlib@0006
 
+	move.l	d0,-(sp)
 	bsr	GetFileHandle						; Get handle in d0
-	movea.w	d0,a0							; a0 = NULL if handle was not found
-	tst.w	d0							; Check
-	beq.s	\End							; Don't deref if not found
+	movea.w	d0,a0							; a0 = NULL if handle was not found (sign extension)
+	beq.s	\End							; Don't deref if not found (Z-Flag already set gy GetFileHandle)
 	trap	#3							; Deref
-\End:	rts
+\End:	move.l	(sp)+,d0
+	rts
 
 
 ;==================================================================================================
 ;
-;	pdtlib::GetFileHandel
+;	pdtlib::GetFileHandle
 ;
 ;	Return the handle of a file. Return H_NULL if the filename was invalid or couldn't be found
 ;
@@ -35,6 +36,8 @@ GetFilePtr:	DEFINE	pdtlib@0006
 ;	out	d0.w	handle
 ;
 ;	destroy	d0.l
+;
+;	internal	Set the Z-flag according to the handle
 ;
 ;==================================================================================================
 
