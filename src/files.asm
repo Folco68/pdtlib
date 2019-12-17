@@ -103,8 +103,7 @@ CreateSymStr:
 ;
 ;	pdtlib::CheckFileType
 ;
-;	Check if a file has the requested type\WrongType:
-
+;	Check if a file has the requested type
 ;
 ;	in	a0	C-style filename
 ;		a1	custom tag string if d2 is OTH_TAG
@@ -173,3 +172,57 @@ CheckFileType:	DEFINE	pdtlib@0007
 	; d0.w is already 0
 
 \End:	rts
+
+
+;==================================================================================================
+;
+;	pdtlib::ArchiveFile
+;
+;	Archive a file
+;
+;	in	a0	C-style filename
+;
+;	out	d0.w	0 if file is not in archive after the call
+;
+;	destroy	std
+;
+;==================================================================================================
+
+ArchiveFile:	DEFINE	pdtlib@000B
+
+	bsr	CreateSymStr				; Create a SYM_STR
+	move.l	a0,d0					; Check for result
+	beq.s	\Fail
+	
+	clr.l	-(sp)					; We don't use HSym, so it's NULL
+	pea	(a0)					; Push SYM_STR*
+	ROMC	EM_moveSymToExtMem			; And try archive file
+	addq.l	#8,sp					; Pop stack
+\Fail:	rts
+
+
+;==================================================================================================
+;
+;	pdtlib::UnarchiveFile
+;
+;	Unarchive a file
+;
+;	in	a0	C-style filename
+;
+;	out	d0.w	0 if file is not in RAM after the call
+;
+;	destroy	std
+;
+;==================================================================================================
+
+UnarchiveFile:	DEFINE	pdtlib@000Cs
+
+	bsr	CreateSymStr				; Create a SYM_STR
+	move.l	a0,d0					; Check for result
+	beq.s	\Fail
+
+	clr.l	-(sp)					; We don't use HSym, so it's NULL
+	pea	(a0)					; Push SYM_STR*
+	ROMC	EM_moveSymFromExtMem			; And try archive file
+	addq.l	#8,sp					; Pop stack
+\Fail:	rts
