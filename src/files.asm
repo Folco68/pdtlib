@@ -19,7 +19,7 @@ GetFilePtr:	DEFINE	pdtlib@0006
 	move.l	d0,-(sp)
 	bsr	GetFileHandle						; Get handle in d0
 	movea.w	d0,a0							; a0 = NULL if handle was not found (sign extension)
-	beq.s	\End							; Don't deref if not found (Z-Flag already set gy GetFileHandle)
+	beq.s	\End							; Don't deref if not found (Z-Flag already set by GetFileHandle)
 	trap	#3							; Deref
 \End:	move.l	(sp)+,d0
 	rts
@@ -92,7 +92,7 @@ CreateSymStr:
 	moveq.l	#8+1+8+1-1,d0						; Counter, to avoid a buffer overflow
 \Copy:	move.b	(a0)+,(a1)+						; Copy the filename
 	beq.s	\End							; Jump out when the end of the filename is reached
-	dbf.w	d0,\Copy
+	dbra.w	d0,\Copy
 \Fail:		suba.l	a0,a0						; Else the line is too long, return 0
 		rts
 \End:	lea	-1(a1),a0						; a1 points to the terminal 0
@@ -123,6 +123,7 @@ CheckFileType:	DEFINE	pdtlib@0007
 	;------------------------------------------------------------------------------------------
 	;	Try to get a pointer to file content
 	;------------------------------------------------------------------------------------------
+
 	moveq.l	#-1,d0							; Prepare "file not found" return code
 	bsr	GetFilePtr						; Get a pointer to file data
 	move.l	a0,d1							; Check if the file was found
@@ -131,6 +132,7 @@ CheckFileType:	DEFINE	pdtlib@0007
 	;------------------------------------------------------------------------------------------
 	;	Basic check of the type (no custom extension)
 	;------------------------------------------------------------------------------------------
+
 	moveq.l	#0,d1							; Clear upper part
 	move.w	(a0),d1							; Read file size
 	lea	1(a0,d1.w),a0						; Tag pointer
@@ -140,6 +142,7 @@ CheckFileType:	DEFINE	pdtlib@0007
 	;------------------------------------------------------------------------------------------
 	;	Check for OTH_TAG
 	;------------------------------------------------------------------------------------------
+
 	moveq.l	#0,d0							; Prepare "type ok" return code
 	cmpi.b	#OTH_TAG,d2						; Is this OTH_TAG ?
 	bne.s	\End							; No, no further check required
@@ -148,17 +151,19 @@ CheckFileType:	DEFINE	pdtlib@0007
 	;	Else the tag is OTH_TAG, we must check the custom extension pointed to by a1
 	;	First, get the first byte of the extension in the file
 	;------------------------------------------------------------------------------------------
+
 	subq.l	#2,a0							; Last byte of the custom extension
 	moveq.l	#4,d1							; The length of a custom extension is 4 bytes max
 \Loop:	tst.b	-(a0)
 	beq.s	\CheckExtension
-	dbf.w	d1,\Loop
+	dbra.w	d1,\Loop
 \WrongType:	moveq.l	#1,d0						; If the counter is exhausted, the extension is invalid
 		bra.s	\End
 
 	;------------------------------------------------------------------------------------------
 	;	Check if the extensions match
 	;------------------------------------------------------------------------------------------
+
 \CheckExtension:
 	move.b	(a0),d0							; Read a byte of the extension
 	beq.s	\Check0							; If it's the last one, check that it's the same for the target extension
@@ -193,7 +198,7 @@ ArchiveFile:	DEFINE	pdtlib@000B
 	bsr	CreateSymStr				; Create a SYM_STR
 	move.l	a0,d0					; Check for result
 	beq.s	\Fail
-	
+
 	clr.l	-(sp)					; We don't use HSym, so it's NULL
 	pea	(a0)					; Push SYM_STR*
 	ROMC	EM_moveSymToExtMem			; And try archive file
@@ -215,7 +220,7 @@ ArchiveFile:	DEFINE	pdtlib@000B
 ;
 ;==================================================================================================
 
-UnarchiveFile:	DEFINE	pdtlib@000Cs
+UnarchiveFile:	DEFINE	pdtlib@000C
 
 	bsr	CreateSymStr				; Create a SYM_STR
 	move.l	a0,d0					; Check for result

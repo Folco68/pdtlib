@@ -1,0 +1,8 @@
+Cmdline::RemoveCurrentArg
+	bpl.s	\MovePtr					; At least one arg to move
+		bra.s	\End
+
+Optimize with "bmi" (<= 0). Look for cmp table with test to 0
+
+
+- complete C header for GetFileHandle / ArchiveFile / UnarchiveFile

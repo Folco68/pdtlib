@@ -52,7 +52,7 @@ ResetCmdline:	DEFINE	pdtlib@0002
 ;
 ;	out	a0	arg, or null if no arg remains
 ;
-;	destroy	a0
+;	destroy	d0/a0
 ;
 ;==================================================================================================
 
@@ -77,16 +77,17 @@ GetNextArg:	DEFINE	pdtlib@0003
 
 GetCurrentArg:	DEFINE	pdtlib@0004
 
-	move.w	CURRENT(a0),d0		; Read # current arg
-	cmp.w	ARGC(a0),d0		; Does it exist ?
-	bcs.s	\GetArg			; Yes
-		suba.l	a0,a0		; No more arg, return null
+	move.w	CURRENT(a0),d0			; Read # current arg
+	cmp.w	ARGC(a0),d0			; Does it exist ?
+	bcc.s	\GetArg				; Yes
+		move.w	ARGC(a0),CURRENT(a0)	; Ensure that CURRENT is not > ARGC (spec)
+		suba.l	a0,a0			; No more arg, return null
 		rts
 \GetArg:
-	add.w	d0,d0			; argv is a table of longwords
+	add.w	d0,d0				; argv is a table of longwords
 	add.w	d0,d0
-	movea.l	ARGV(a0),a0		; argv**
-	movea.l	0(a0,d0.w),a0		; arg
+	movea.l	ARGV(a0),a0			; argv**
+	movea.l	0(a0,d0.w),a0			; arg
 	rts
 
 
@@ -125,6 +126,7 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 	;------------------------------------------------------------------------------------------
 	;	Define some constants to access the args in the stack
 	;------------------------------------------------------------------------------------------
+
 CLI			equ	2*4+4
 DATA			equ	2*4+8
 SWITCH_TABLE		equ	2*4+12
@@ -142,6 +144,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	Beginning of the parsing of an arg
 	;------------------------------------------------------------------------------------------
+
 \NextArg:
 	movea.l	CLI(sp),a0					; CMDLINE*
 	bsr.s	GetNextArg					; Get the next arg
@@ -154,6 +157,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	Initialize some vars
 	;------------------------------------------------------------------------------------------
+
 \ParseArg:
 	moveq.l	#0,d1						; Offset in the callback table
 	movea.l	SWITCH_TABLE(sp),a2				; Beginning of the table
@@ -163,6 +167,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	Check if we have zero, one or two '+' signs
 	;------------------------------------------------------------------------------------------
+
 	moveq.l	#'+',d3						; Start with the '+' sign
 	cmp.b	(a0),d3						; First char is '+' ?
 	bne.s	\NoPlus						; No, will try with '-'
@@ -172,6 +177,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	We have only one sign, check that the switch is 1 char long and null-terminated
 	;------------------------------------------------------------------------------------------
+
 \CheckShortSwitch:
 	moveq.l	#PDTLIB_INVALID_SWITCH,d0			; Prepare error code
 	tst.b	1(a0)						; We need one non-null char
@@ -182,6 +188,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	We have found a short switch, let's try to find it in the table
 	;------------------------------------------------------------------------------------------
+
 \ShortSwitchLoop:
 	cmp.b	(a2)+,d2					; Is this that switch ?
 	beq.s	\SwitchFound					; Yes, call its callback
@@ -191,6 +198,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	Check if we have zero, one or two '-' signs
 	;------------------------------------------------------------------------------------------
+
 \NoPlus:
 	addq.w	#'-'-'+',d3					; '+' to '-' sign
 	cmp.b	(a0),d3						; First char is '-' ?
@@ -201,6 +209,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	We have found a long switch, let's try to find it in the table
 	;------------------------------------------------------------------------------------------
+
 \LongSwitch:
 	lea	2(a0),a1					; Skip the double sign
 \LongSwitchLoop:
@@ -219,16 +228,18 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;------------------------------------------------------------------------------------------
 	;	We have an argument which has no sign
 	;------------------------------------------------------------------------------------------
+
 \NoSign:
 	movea.l	DATA(sp),a0					; (void*)data
 	movea.l	CALLBACK_NO_SWITCH(sp),a1			; Callback ptr
 	move.l	a1,d0						; Check if there is a callback for non-switch args
 	beq.s	\NextArg					; No
-	jsr	(a1)						; Else call it
+		jsr	(a1)					; int (*)(void*)
 
 	;------------------------------------------------------------------------------------------
 	;	We must check that the callback return value is valid
 	;------------------------------------------------------------------------------------------
+
 \CheckCallbackReturnValue:
 	move.w	d0,d1						; PDTLIB_CONTINUE_PARSING ?
 	beq.s	\NextArg					; Yes, continue with next arg
@@ -238,18 +249,19 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	bne.s	\EndOfParsing					; But this value is invalid
 
 	moveq.l	#PDTLIB_STOPPED_BY_CALLBACK,d0			; Else the callback stopped the parsing
-\EOP:	bra.s	\EndOfParsing
+\EOP:	bra.s	\EndOfParsing					; (Trampoline for far jumps)
 
 	;------------------------------------------------------------------------------------------
 	;	We found the switch we're looking for, so call its callback
 	;------------------------------------------------------------------------------------------
+
 \SwitchFound:
 	move.l	CALLBACK_SWITCH(sp,d1.w),d1			; (*callback)
 	beq.s	\NextArg					; Don't run the callback if it's null
-		move.w	d3,d0					; Sign
+		move.w	d3,d0					; (int)sign
 		movea.l	DATA(sp),a0				; (void*)data
 		movea.l	d1,a1					; (*callback)
-		jsr	(a1)
+		jsr	(a1)					; int (*)(void*, int)
 		bra.s	\CheckCallbackReturnValue		; We need to test the return value of the callback
 
 	;------------------------------------------------------------------------------------------
@@ -258,6 +270,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	;	Update the offset register
 	;	Throw an error if the table is exhausted
 	;------------------------------------------------------------------------------------------
+
 \SkipSwitch:
 	tst.b	(a2)+						; Skip current switch
 	bne.s	\SkipSwitch
@@ -290,39 +303,38 @@ ParseCmdline:	DEFINE	pdtlib@0005
 
 RemoveCurrentArg:	DEFINE pdtlib@0009
 
-	movem.l	a0-a1/d1,-(sp)					; Save regs
-	movea.l	a0,a1						; Save CMDLINE*
+	movem.l	a0/d1,-(sp)					; Save regs
 
 	;------------------------------------------------------------------------------------------
 	;	Safety check: is there an arg to move ?
 	;------------------------------------------------------------------------------------------
 
-	bsr	GetCurrentArg
-	move.l	a0,d0						; Check if there is a current argument
-	beq.s	\Fail						; No -> error
-	
+	move.w	ARGC(a0),d1
+	move.w	CURRENT(a0),d0
+	beq.s	\End						; Cannot remove program name
+	cmp.w	d0,d1
+	beq.s	\End						; No current arg to remove
+
+	;------------------------------------------------------------------------------------------
+	;	Now we can adjust CMDLINE vars
+	;------------------------------------------------------------------------------------------
+
+	subq.w	#1,ARGC(a0)					; One less arg
+	subq.w	#1,CURRENT(a0)					; Previous arg becomes the current one
+
 	;------------------------------------------------------------------------------------------
 	;	Get the number of args to move and move them
 	;------------------------------------------------------------------------------------------
 
-	move.w	ARGC(a1),d0					; Read argc
-	sub.w	CURRENT(a1),d0					; Number of remaining args
-	subq.w	#2,d0						; Remove program name + counter adjustment
-	bpl.s	\MovePtr					; At least one arg to move
-		subq.w	#1,ARGC(a1)				; Else we are removing the last arg, decrease ARGC with 1, no address to move
-		bra.s	\End
-	
-\MovePtr:
-	move.w	CURRENT(a1),d1
-	add.w	d1,d1
-	add.w	d1,d1
-	movea.l	ARGV(a1),a0
-	lea	0(a0,d1.w),a0
-	
+	sub.w	d0,d1						; ARGC - CURRENT
+	subq.w	#2,d1						; Remove one arg + counter adjustment =
+	bmi.s	\End						; The arg to remove is the last one, nothing to do on the list
+		add.w	d0,d0					; CURRENT * 2
+		add.w	d0,d0					; CURRENT * 4 (table of pointers)
+		movea.l	ARGV(a0),a0				; Read argv**
+		lea	0(a0,d0.w),a0				; Pointer to the current arg, which is removed
 \Loop:	move.l	4(a0),(a0)+					; Move the next arg to the previous position
-	subq.w	#1,ARGC(a1)					; Adjust argc
-	dbf.w	d0,\Loop
+	dbra.w	d1,\Loop
 
-\End:	subq.w	#1,CURRENT(a1)					; The previous arg becomes the current one
-\Fail:	movem.l	(sp)+,a0-a1/d1					; Restore regs
+\End:	movem.l	(sp)+,a0/d1					; Restore regs
 	rts
