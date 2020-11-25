@@ -3,13 +3,14 @@
 
 #include "ramcall.h"
 
+//
+// pdtlib_ParseCmdline callback prototypes
+//
+typedef int (*CB_NotASwitch)(void* Data);
+typedef int (*CB_Switch)(void* Data, int Sign);
 
 // CMDLINE structure which must be passed to Pdtlib when using command line functions
-typedef struct CMDLINE {
-    int a;
-    long b;
-    int c;
-} CMDLINE;
+typedef struct CMDLINE CMDLINE;
 
 // Pdtlib exported functions. Define export, rank, prototype and type definitions
 #define pdtlib_InstallTrampolines pdtlib__0000

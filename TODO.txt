@@ -1,8 +1,3 @@
-Cmdline::RemoveCurrentArg
-	bpl.s	\MovePtr					; At least one arg to move
-		bra.s	\End
-
-Optimize with "bmi" (<= 0). Look for cmp table with test to 0
-
-
 - complete C header for GetFileHandle / ArchiveFile / UnarchiveFile
+- reorder C header. Group functions, put PDTLIB_CMDLINE_SIZEOF and CMDLINE typedef together
+- pdtlib@0008 (InstallTrampolines, C version). We write address at 2(a3,d0.w). Shouldn't offset be 0??

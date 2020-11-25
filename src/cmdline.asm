@@ -79,7 +79,7 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 
 	move.w	CURRENT(a0),d0			; Read # current arg
 	cmp.w	ARGC(a0),d0			; Does it exist ?
-	bcc.s	\GetArg				; Yes
+	bcs.s	\GetArg				; Yes
 		move.w	ARGC(a0),CURRENT(a0)	; Ensure that CURRENT is not > ARGC (spec)
 		suba.l	a0,a0			; No more arg, return null
 		rts
@@ -142,7 +142,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 	movem.l	d3/a2,-(sp)
 
 	;------------------------------------------------------------------------------------------
-	;	Beginning of the parsing of an arg
+	;	Start to parse an arg
 	;------------------------------------------------------------------------------------------
 
 \NextArg:
@@ -292,10 +292,11 @@ ParseCmdline:	DEFINE	pdtlib@0005
 ;	pdtlib::RemoveCurrentArg
 ;
 ;	Remove the current arg from the argv table. Usefull when parsing the CLI multiple times
+;	The previous arg becomes the current one. First arg (the program name) can't be removed
 ;
 ;	in	a0	CMDLINE*
 ;
-;	out	d0	0 if no current arg
+;	out	d0	0 if no current arg or current arg is #0
 ;
 ;	destroy	nothing
 ;
@@ -306,14 +307,14 @@ RemoveCurrentArg:	DEFINE pdtlib@0009
 	movem.l	a0/d1,-(sp)					; Save regs
 
 	;------------------------------------------------------------------------------------------
-	;	Safety check: is there an arg to move ?
+	;	Safety checks: is there an arg to remove?
 	;------------------------------------------------------------------------------------------
 
 	move.w	ARGC(a0),d1
 	move.w	CURRENT(a0),d0
-	beq.s	\End						; Cannot remove program name
+	beq.s	\Fail						; Cannot remove program name
 	cmp.w	d0,d1
-	beq.s	\End						; No current arg to remove
+	beq.s	\Fail						; No current arg to remove
 
 	;------------------------------------------------------------------------------------------
 	;	Now we can adjust CMDLINE vars
@@ -323,12 +324,13 @@ RemoveCurrentArg:	DEFINE pdtlib@0009
 	subq.w	#1,CURRENT(a0)					; Previous arg becomes the current one
 
 	;------------------------------------------------------------------------------------------
-	;	Get the number of args to move and move them
+	;	Get the number of args to move, then move them
 	;------------------------------------------------------------------------------------------
 
 	sub.w	d0,d1						; ARGC - CURRENT
 	subq.w	#2,d1						; Remove one arg + counter adjustment =
 	bmi.s	\End						; The arg to remove is the last one, nothing to do on the list
+	bmi.s	\Fail						; The arg to remove is the last one, nothing to do on the list
 		add.w	d0,d0					; CURRENT * 2
 		add.w	d0,d0					; CURRENT * 4 (table of pointers)
 		movea.l	ARGV(a0),a0				; Read argv**
@@ -338,3 +340,6 @@ RemoveCurrentArg:	DEFINE pdtlib@0009
 
 \End:	movem.l	(sp)+,a0/d1					; Restore regs
 	rts
+
+\Fail:	moveq.l	#0,d0
+	bra.s	\End
