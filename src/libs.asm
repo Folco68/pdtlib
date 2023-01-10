@@ -1,10 +1,11 @@
-; kate: indent-width 8; replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
+; kate: replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
 
 ;==================================================================================================
 ;
 ;	pdtlib::InstallTrampolines
 ;
-;       This function may be used in assembly, and avoid to use kernel::LibsBegin
+;       This function may be used in assembly, and avoid to use kernel::LibsBegin.
+;	Its designed to get rid of relocations with dynamic libraries calls
 ;
 ;	This function opens a library, and creates trampolines, using a table of functions
 ;	to load, and a table of offsets to know where the trampolines must be located
@@ -47,6 +48,7 @@
 ;	pdtlib::InstallTrampolines
 ;
 ;       This function has to be used in C, and the caller must have called kernel::LibsBegin beforehand
+;	Its designed to get rid of relocations with dynamic libraries calls
 ;
 ;	This function opens a library, and creates trampolines, using a table of functions
 ;	to load, and a table of offsets to know where the trampolines must be located
