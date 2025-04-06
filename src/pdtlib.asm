@@ -1,5 +1,3 @@
-; kate: replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
-
 	include "tios.h"
 	include "romcalls.h"
 	include "krnlramc.h"
