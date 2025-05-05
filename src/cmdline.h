@@ -4,6 +4,6 @@
 ;	Definition of the CMDLINE structure
 ;==================================================================================================
 
-ARGC	equ	0	; 2	; Can be 0, if RemoveCurrentArg is used. Cannot be negative
+ARGC	equ	0	; 2	== 4 * argc in "int main(int argc, char** argv)", because it's always used to read in a table of longwords
 ARGV	equ	2	; 4
-CURRENT	equ	6	; 2	; Cannot be greater than ARGC
+CURRENT	equ	6	; 2

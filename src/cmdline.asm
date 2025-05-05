@@ -1,5 +1,16 @@
 ; kate: replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
 
+; Spec:
+;
+;	- Internal: 0 <= CMDLINE.CURRENT <= CMDLINE.ARGC
+;	- Internal: CMDLINE.ARGC == 4 * argc in "int main(int argc, char** argv)"
+;	- Internal: CMDLINE.CURRENT is an offset, so it starts at 0 and is increased by 4 for the next arg
+;	- All the args can be disabled, even the first one (program name)
+;	- GetNextArg always returns the first enabled arg
+;	- GetCurrentArg returns the first available arg after RewindCmdlineParser is called
+;	- GetCurrentArg returns the first available arg, even after a call to DisableArg
+
+
 ;==================================================================================================
 ;
 ;	pdtlib::InitCmdline
@@ -12,19 +23,21 @@
 ;
 ;	out	nothing
 ;
-;	destroy	nothing
+;	destroy	d0
 ;
 ;==================================================================================================
 
 InitCmdline:	DEFINE	pdtlib@0001
 
-	move.w	d0,ARGC(a0)		; Save argc
-	move.l	a1,ARGV(a0)		; Save argv
+	add.w	d0,d0
+	add.w	d0,d0
+	move.w	d0,ARGC(a0)		; argc * 4
+	move.l	a1,ARGV(a0)		; argv
 
 
 ;==================================================================================================
 ;
-;	pdtlib::ResetCmdline
+;	pdtlib::RewindCmdlineParser
 ;
 ;	Reset a structure of CLI parsing
 ;
@@ -36,7 +49,7 @@ InitCmdline:	DEFINE	pdtlib@0001
 ;
 ;==================================================================================================
 
-ResetCmdline:	DEFINE	pdtlib@0002
+RewindCmdlineParser:	DEFINE	pdtlib@0002
 
 	clr.w	CURRENT(a0)		; Reset parser
 	rts
@@ -58,7 +71,7 @@ ResetCmdline:	DEFINE	pdtlib@0002
 
 GetNextArg:	DEFINE	pdtlib@0003
 
-	addq.w	#1,CURRENT(a0)		; Next argument
+	addq.w	#4,CURRENT(a0)
 
 
 ;==================================================================================================
@@ -77,17 +90,23 @@ GetNextArg:	DEFINE	pdtlib@0003
 
 GetCurrentArg:	DEFINE	pdtlib@0004
 
-	move.w	CURRENT(a0),d0			; Read # current arg
-	cmp.w	ARGC(a0),d0			; Does it exist ?
-	bcs.s	\GetArg				; Yes
-		move.w	ARGC(a0),CURRENT(a0)	; Ensure that CURRENT is not > ARGC (spec)
-		suba.l	a0,a0			; No more arg, return null
-		rts
-\GetArg:
-	add.w	d0,d0				; argv is a table of longwords
-	add.w	d0,d0
-	movea.l	ARGV(a0),a0			; argv**
-	movea.l	0(a0,d0.w),a0			; arg
+	pea	(a0)				; Save CMDLINE*
+
+\Loop:	movea.l	(sp),a0				; Restore CMDLINE if previous arg was disabled
+	move.w	CURRENT(a0),d0			; Read current index
+	cmp.w	ARGC(a0),d0			; Is it over the last one?
+	bcs.s	\NotEnd				; No
+		move.w	ARGC(a0),CURRENT(a0)	; 
+		suba.l	a0,a0			; Else return null
+		bra.s	\End
+
+\NotEnd:
+	movea.l	ARGV(a0),a0			; argv
+	move.l	0(a0,d0.w),d0			; arg*
+	bmi.s	\Loop				; <0 means disabled, try to get the next one
+	movea.l	d0,a0
+
+\End:	addq.l	#4,sp
 	rts
 
 
@@ -140,6 +159,9 @@ CALLBACK_SWITCH		equ	2*4+20
 ParseCmdline:	DEFINE	pdtlib@0005
 
 	movem.l	d3/a2,-(sp)
+	movea.l	CLI(sp),a0
+	bsr.s	GetCurrentArg
+	bra.s	\CurrentArg
 
 	;------------------------------------------------------------------------------------------
 	;	Start to parse an arg
@@ -148,6 +170,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 \NextArg:
 	movea.l	CLI(sp),a0					; CMDLINE*
 	bsr.s	GetNextArg					; Get the next arg
+\CurrentArg:
 	move.l	a0,d0						; Is there one ?
 	bne.s	\ParseArg					; Yes, parse it
 		moveq	#PDTLIB_END_OF_PARSING,d0		; Else, we're done with parsing
@@ -288,10 +311,10 @@ ParseCmdline:	DEFINE	pdtlib@0005
 
 ;==================================================================================================
 ;
-;	pdtlib::RemoveCurrentArg
+;	pdtlib::DisableCurrentArg
 ;
-;	Remove the current arg from the argv table. Usefull when parsing the CLI multiple times
-;	The previous arg becomes the current one. First arg (the program name) can't be removed
+;	Disable the current arg from the argv table by setting its upper byte to $FF (16 MB < $FFxxxxxx < 4GB).
+; 	It won't be returned anymore by GetNextArg until ResetCmdlineParser is called
 ;
 ;	in	a0	CMDLINE*
 ;
@@ -301,43 +324,47 @@ ParseCmdline:	DEFINE	pdtlib@0005
 ;
 ;==================================================================================================
 
-RemoveCurrentArg:	DEFINE pdtlib@0009
+DisableCurrentArg:	DEFINE pdtlib@0009
 
-	movem.l	a0/d1,-(sp)					; Save regs
-
-	;------------------------------------------------------------------------------------------
-	;	Safety checks: is there an arg to remove?
-	;------------------------------------------------------------------------------------------
-
-	move.w	ARGC(a0),d1
+	pea	(a0)				; Don't want to destroy a0
 	move.w	CURRENT(a0),d0
-	beq.s	\Fail						; Cannot remove program name
-	cmp.w	d0,d1
-	beq.s	\Fail						; No current arg to remove
-
-	;------------------------------------------------------------------------------------------
-	;	Now we can adjust CMDLINE vars
-	;------------------------------------------------------------------------------------------
-
-	subq.w	#1,ARGC(a0)					; One less arg
-	subq.w	#1,CURRENT(a0)					; Previous arg becomes the current one
-
-	;------------------------------------------------------------------------------------------
-	;	Get the number of args to move, then move them
-	;------------------------------------------------------------------------------------------
-
-	sub.w	d0,d1						; ARGC - CURRENT
-	subq.w	#2,d1						; Remove one arg + counter adjustment
-	bmi.s	\End						; The arg to remove is the last one, nothing to do on the list
-		add.w	d0,d0					; CURRENT * 2
-		add.w	d0,d0					; CURRENT * 4 (table of pointers)
-		movea.l	ARGV(a0),a0				; Read argv**
-		lea	0(a0,d0.w),a0				; Pointer to the current arg, which is removed
-\Loop:	move.l	4(a0),(a0)+					; Move the next arg to the previous position
-	dbra.w	d1,\Loop
-
-\End:	movem.l	(sp)+,a0/d1					; Restore regs
+	cmp.w	ARGC(a0),d0			; Parser at the end?
+	bne.s	\Disable			; No, so we can disable the arg
+		moveq	#0,d0			; Else set error code
+		bra.s	\End
+\Disable:
+	movea.l	ARGV(a0),a0
+	st	0(a0,d0.w)			; Set upper byte of the arg ptr to $FF
+	moveq	#1,d0				; Ensure a correct return value when disabling first arg
+\End:	movea.l	(sp)+,a0
 	rts
 
-\Fail:	moveq	#0,d0
-	bra.s	\End
+
+;==================================================================================================
+;
+;	pdtlib::ResetCmdlineParser
+;
+;	Restore the disabled arg and reset the parser to the first element
+;
+;	in	a0	CMDLINE*
+;
+;	out	nothing
+;
+;	destroy	nothing
+;
+;==================================================================================================
+
+ResetCmdlineParser:	DEFINE pdtlib@000D
+
+	movem.l	d0-d1/a0,-(sp)
+	clr.w	CURRENT(a0)			; Reset parser to first arg
+	move.w	ARGC(a0),d0
+	subq.w	#4,d0				; ARGC - 4 = offset
+	move.w	d0,d1
+	lsr.w	#2,d1				; argc - 1 = dbf counter
+	movea.l	ARGV(a0),a0
+\Loop:	clr.b	0(a0,d0.w)			; Enable each arg
+	subq.w	#4,d0				; Offset of the previous arg
+	dbf.w	d1,\Loop
+	movem.l	(sp)+,d0-d1/a0
+	rts

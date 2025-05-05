@@ -23,10 +23,10 @@ typedef LibRef* (*pdtlib_InstallTrampolines_t)(char* LibName asm("a0"), char Ver
 void pdtlib_InitCmdline(CMDLINE* CmdLine asm("a0"), int Argc asm("d0"), char** Argv asm("a1"));
 typedef void (*pdtlib_InitCmdline_t)(CMDLINE* CmdLine asm("a0"), int Argc asm("d0"), char** Argv asm("a1"));
 
-#define pdtlib_ResetCmdline pdtlib__0002
-#define PDTLIB_RESET_CMDLINE 0x02
-void pdtlib_ResetCmdline(CMDLINE* CmdLine asm("a0"));
-typedef void (*pdtlib_ResetCmdline_t)(CMDLINE* CmdLine asm("a0"));
+#define pdtlib_RewindCmdlineParser pdtlib__0002
+#define PDTLIB_REWIND_CMDLINE_PARSER 0x02
+void pdtlib_RewindCmdlineParser(CMDLINE* CmdLine asm("a0"));
+typedef void (*pdtlib_RewindCmdlineParser_t)(CMDLINE* CmdLine asm("a0"));
 
 #define pdtlib_GetNextArg pdtlib__0003
 #define PDTLIB_GET_NEXT_ARG 0x03
@@ -58,10 +58,10 @@ typedef int (*pdtlib_CheckFileType_t)(char* Filename asm("a0"), char* CustomTag 
 LibRef* pdtlib_InstallTrampolines_C(LibRef* Libref, unsigned int* FunctionTable, unsigned int* OffsetTable, char* BaseAddress);
 typedef LibRef* (*pdtlib_InstallTrampolines_C_t)(LibRef* Libref, unsigned int* FunctionTable, unsigned int* OffsetTable, char* BaseAddress);
 
-#define pdtlib_RemoveCurrentArg pdtlib__0009
-#define PDTLIB_REMOVE_CURRENT_ARG 0x09
-int pdtlib_RemoveCurrentArg(CMDLINE* CmdLine asm("a0"));
-typedef int (*pdtlib_RemoveCurrentArg_t)(CMDLINE* CmdLine asm("a0"));
+#define pdtlib_DisableCurrentArg pdtlib__0009
+#define PDTLIB_DISABLE_CURRENT_ARG 0x09
+int pdtlib_DisableCurrentArg(CMDLINE* CmdLine asm("a0"));
+typedef int (*pdtlib_DisableCurrentArg_t)(CMDLINE* CmdLine asm("a0"));
 
 
 // Return values of pdtlib_ParseCmdline
