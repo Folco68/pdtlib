@@ -1,5 +1,3 @@
-; kate: replace-tabs false; syntax Motorola 68k (VASM/Devpac); tab-width 8;
-
 ; Spec:
 ;
 ;	- Internal: 0 <= CMDLINE.CURRENT <= CMDLINE.ARGC
@@ -92,20 +90,20 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 
 	pea	(a0)				; Save CMDLINE*
 
-\Loop:	movea.l	(sp),a0				; Restore CMDLINE if previous arg was disabled
-	move.w	CURRENT(a0),d0			; Read current index
+\Loop:	move.w	CURRENT(a0),d0			; Read current index
 	cmp.w	ARGC(a0),d0			; Is it over the last one?
 	bcs.s	\NotEnd				; No
 		move.w	ARGC(a0),CURRENT(a0)	; 
 		suba.l	a0,a0			; Else return null
 		bra.s	\End
-
 \NotEnd:
 	movea.l	ARGV(a0),a0			; argv
 	move.l	0(a0,d0.w),d0			; arg*
-	bmi.s	\Loop				; <0 means disabled, try to get the next one
-	movea.l	d0,a0
-
+	bpl.s	\Ok				; >0 means that the arg is enabled, we can return it
+		movea.l	(sp),a0
+		addq.w	#4,CURRENT(a0)
+		bra.s	\Loop
+\Ok:	movea.l	d0,a0
 \End:	addq.l	#4,sp
 	rts
 
