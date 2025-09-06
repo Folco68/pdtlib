@@ -2,4 +2,5 @@
 - reorder C header. Group functions, put PDTLIB_CMDLINE_SIZEOF and CMDLINE typedef together
 - pdtlib@0008 (InstallTrampolines, C version). We write address at 2(a3,d0.w). Shouldn't offset be 0??
 + pdtlib::ParseCommandLine: optimize jsr(a1)/bra.s CheckCallbackReturnValue with a bra.s to the previous jsr
-- tail optimization for ArchiveFile: use exit procedure of UnarchiveFile
++ tail optimization for ArchiveFile: use exit procedure of UnarchiveFile
++ in case of early fail, CreateSymStr does not decrease sp by 20, contrary to a later fail

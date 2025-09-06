@@ -19,7 +19,7 @@ GetFilePtr:	DEFINE	pdtlib@0006
 	movea.w	d0,a0							; a0 = NULL if handle was not found (sign extension)
 	beq.s	\End							; Don't deref if not found (Z flag already set by GetFileHandle)
 	trap	#3							; Deref
-\End:	move.l	(sp)+,d0
+\End:	move.l	(sp)+,d0						; Pop stack
 	rts
 
 
@@ -45,7 +45,7 @@ GetFileHandle:	DEFINE	pdtlib@000A
 	bsr	CreateSymStr						; Create the SYM_STR
 	move.l	a0,d0							; Check it
 	bne.s	\SymStrCreated						; Process it if the name is valid
-\End:		lea	20(sp),sp
+\End:		lea	20(sp),sp					; Pop the buffer created by CreateSymStr
 		movem.l	(sp)+,a0-a1/d1-d2
 		rts
 
@@ -56,7 +56,7 @@ GetFileHandle:	DEFINE	pdtlib@000A
 	addq.l	#6,sp							; Pop args
 	move.l	a0,d0							; Check the SYM_ENTRY*
 	beq.s	\End							; The file was not found
-	move.w	12(a0),d0						; Read the handle
+	move.w	12(a0),d0						; Else read the handle
 	bra.s	\End
 
 
@@ -75,16 +75,16 @@ GetFileHandle:	DEFINE	pdtlib@000A
 ;	destroy	a0-a1/sp
 ;
 ;	WARNING: sp is decreased by 20 after the call.
-;	It's the responsibility of the caller to restore it
+;	The caller is responsible for restoring it
 ;
 ;==================================================================================================
 
 CreateSymStr:
 
-	tst.b	(a0)							; Check if it's not a null-string
-	beq.s	\Fail
 	lea	-20(sp),sp						; Create a buffer
 	move.l	20(sp),(sp)						; Restore the return pointer
+	tst.b	(a0)							; Check if it's not a null-string
+	beq.s	\Fail
 	lea	4(sp),a1						; First byte of the buffer
 	clr.b	(a1)+							; The first byte of a SYM_STR is null
 	moveq	#8+1+8+1-1,d0						; Counter, to avoid a buffer overflow
@@ -104,7 +104,7 @@ CreateSymStr:
 ;	Check if a file has the requested type
 ;
 ;	in	a0	C-style filename
-;		a1	custom tag string if d2 is OTH_TAG
+;		a1	custom tag string if d2 is OTH_TAG, else unused
 ;		d2.b	tag
 ;
 ;
@@ -131,7 +131,7 @@ CheckFileType:	DEFINE	pdtlib@0007
 	;	Basic check of the type (no custom extension)
 	;------------------------------------------------------------------------------------------
 
-	moveq	#0,d1							; Clear upper part
+	moveq	#0,d1							; Clear upper word
 	move.w	(a0),d1							; Read file size
 	lea	1(a0,d1.w),a0						; Tag pointer
 	cmp.b	(a0),d2							; Check with argument tag
@@ -195,14 +195,11 @@ ArchiveFile:	DEFINE	pdtlib@000B
 
 	bsr	CreateSymStr				; Create a SYM_STR
 	move.l	a0,d0					; Check for result
-	beq.s	\Fail
-
+	beq.s	UnarcFail				; Invalid filename
 	clr.l	-(sp)					; We don't use HSym, so it's NULL
 	pea	(a0)					; Push SYM_STR*
-	ROMC	EM_moveSymToExtMem			; And try archive file
-	addq.l	#8,sp					; Pop stack
-\Fail:	lea	20(sp),sp				; Pop SYM_STR buffer
-	rts
+	ROMC	EM_moveSymToExtMem			; And try to archive file
+	bra.s	ArcEnd
 
 
 ;==================================================================================================
@@ -223,11 +220,11 @@ UnarchiveFile:	DEFINE	pdtlib@000C
 
 	bsr	CreateSymStr				; Create a SYM_STR
 	move.l	a0,d0					; Check for result
-	beq.s	\Fail
-
+	beq.s	UnarcFail				; Invalid filename
 	clr.l	-(sp)					; We don't use HSym, so it's NULL
 	pea	(a0)					; Push SYM_STR*
-	ROMC	EM_moveSymFromExtMem			; And try archive file
-	addq.l	#8,sp					; Pop stack
-\Fail:	lea	20(sp),sp				; Pop SYM_STR buffer
+	ROMC	EM_moveSymFromExtMem			; And try to archive file
+ArcEnd:	addq.l	#8,sp					; Pop stack
+UnarcFail:
+	lea	20(sp),sp				; Pop SYM_STR buffer
 	rts

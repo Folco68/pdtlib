@@ -93,18 +93,17 @@ GetCurrentArg:	DEFINE	pdtlib@0004
 \Loop:	move.w	CURRENT(a0),d0			; Read current index
 	cmp.w	ARGC(a0),d0			; Is it over the last one?
 	bcs.s	\NotEnd				; No
-		move.w	ARGC(a0),CURRENT(a0)	; 
-		suba.l	a0,a0			; Else return null
+		move.w	ARGC(a0),CURRENT(a0)	; Ensure spec
+		suba.l	a0,a0			; And return null
 		bra.s	\End
 \NotEnd:
 	movea.l	ARGV(a0),a0			; argv
 	move.l	0(a0,d0.w),d0			; arg*
 	bpl.s	\Ok				; >0 means that the arg is enabled, we can return it
-		movea.l	(sp),a0
-		addq.w	#4,CURRENT(a0)
-		bra.s	\Loop
-\Ok:	movea.l	d0,a0
-\End:	addq.l	#4,sp
+		movea.l	(sp)+,a0		; Restore CMDLINE* and reset sp
+		bra.s	GetNextArg		; Try to get the next arg
+\Ok:	movea.l	d0,a0				; Current arg ptr
+\End:	addq.l	#4,sp				; Pop stack
 	rts
 
 
