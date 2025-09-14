@@ -315,7 +315,7 @@ ParseCmdline:	DEFINE	pdtlib@0005
 ;
 ;	in	a0	CMDLINE*
 ;
-;	out	d0	0 if no current arg or current arg is #0
+;	out	d0	0 if no current arg
 ;
 ;	destroy	nothing
 ;
@@ -354,13 +354,13 @@ DisableCurrentArg:	DEFINE pdtlib@0009
 ResetCmdlineParser:	DEFINE pdtlib@000D
 
 	movem.l	d0-d1/a0,-(sp)
-	clr.w	CURRENT(a0)			; Reset parser to first arg
+	clr.w	CURRENT(a0)			; Reset parser
 	move.w	ARGC(a0),d0
 	subq.w	#4,d0				; ARGC - 4 = offset
 	move.w	d0,d1
-	lsr.w	#2,d1				; argc - 1 = dbf counter
-	movea.l	ARGV(a0),a0
-\Loop:	clr.b	0(a0,d0.w)			; Enable each arg
+	lsr.w	#2,d1				; (ARGC - 4)/4 = argc - 1 = dbf counter
+	movea.l	ARGV(a0),a0			; argv[x]
+\Loop:	sf	0(a0,d0.w)			; Enable each arg
 	subq.w	#4,d0				; Offset of the previous arg
 	dbf.w	d1,\Loop
 	movem.l	(sp)+,d0-d1/a0
